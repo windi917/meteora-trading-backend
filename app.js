@@ -61,8 +61,8 @@ app.use('/pool', poolRoutes);
 app.use('/market', marketRoutes);
 app.use('/tokenpair', tokenPairRoutes);
 
-app.listen(3030, ()=>{
-    console.log('Application running on http://localhost:3030');
+app.listen(4000, ()=>{
+    console.log('Application running on http://localhost:4000');
 });
 
 module.exports = app;

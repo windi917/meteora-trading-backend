@@ -22,7 +22,6 @@ exports.signup = async (req, res, next) => {
         }        
         const user = await userService.createUser({
             address: address,
-            freeVote: []
         });
 
         res.status(201).json(user)
