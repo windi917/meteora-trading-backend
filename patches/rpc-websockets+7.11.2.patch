@@ -1,0 +1,16 @@
+diff --git a/node_modules/rpc-websockets/package.json b/node_modules/rpc-websockets/package.json
+index 90095d4..25b0a1a 100644
+--- a/node_modules/rpc-websockets/package.json
++++ b/node_modules/rpc-websockets/package.json
+@@ -64,5 +64,11 @@
+   "funding": {
+     "type": "paypal",
+     "url": "https://paypal.me/kozjak"
++  },
++  "exports": {
++    "./dist/lib/client": "./dist/lib/client.cjs",
++    "./dist/lib/client.cjs": "./dist/lib/client.cjs",
++    "./dist/lib/client/websocket":"./dist/lib/client/websocket.cjs",
++    "./dist/lib/client/websocket.cjs":"./dist/lib/client/websocket.cjs"
+   }
+ }

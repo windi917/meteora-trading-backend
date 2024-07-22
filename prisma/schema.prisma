@@ -6,8 +6,17 @@ datasource db {
 generator client {
   provider = "prisma-client-js"
 }
+
 model User {
   id        Int         @id @default(autoincrement())
   address   String      @unique // wallet address
   createdAt DateTime    @default(now())
+}
+
+model Vote {
+  id         Int    @id @default(autoincrement())
+  votingUser String
+  votePower  Int
+  tokenId    String
+  txHash     String
 }
