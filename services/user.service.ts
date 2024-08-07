@@ -153,7 +153,7 @@ export const adminPositionWithdraw = async (pool: string, rate: number, outAmoun
     console.log("total amount: ", totalAmount);
 
     for (let i = 0; i < poolUser.length; i++) {
-      const newAmount = poolUser[i].amount * rate / 100;
+      const newAmount = poolUser[i].amount - poolUser[i].amount * rate / 100;
       // Update PoolUser amount
       await prisma.poolUser.update({
         where: {
@@ -164,7 +164,7 @@ export const adminPositionWithdraw = async (pool: string, rate: number, outAmoun
         },
       });
 
-      const depositRate = totalAmount / poolUser[i].amount;
+      const depositRate = poolUser[i].amount * 100 / totalAmount ;
       console.log("Deposit Rate", depositRate);
       const deposit = await prisma.userDeposit.findFirst({
         where: {
