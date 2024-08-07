@@ -4,15 +4,17 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "@coral-xyz/anchor": "^0.30.1",
     "@meteora-ag/dlmm": "^1.0.48",
     "@prisma/client": "^5.15.0",
+    "@solana/spl-token": "^0.4.8",
     "@solana/web3.js": "^1.95.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.6",
+    "axios": "^1.7.3",
     "bcryptjs": "^2.4.3",
     "bn": "^1.0.5",
+    "bn.js": "^5.2.1",
     "bs58": "^5.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -26,11 +28,13 @@
     "typescript": "^5.5.3"
   },
   "devDependencies": {
+    "@types/bn.js": "^5.1.5",
     "patch-package": "^8.0.0",
     "prisma": "^5.15.0"
   },
   "scripts": {
-    "migrate": "prisma migrate dev && node init.js",
+    "migrate": "prisma migrate dev",
+    "start": "tsc && pm2 start dist/app.js --name 'trading-backend'",
     "test": "echo \"Error: no test specified\" && exit 1",
     "postinstall": "patch-package"
   },

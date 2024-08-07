@@ -13,10 +13,32 @@ model User {
   createdAt DateTime    @default(now())
 }
 
-model Vote {
+model UserDeposit {
+  id          Int     @id @default(autoincrement())
+  user        Int
+  solAmount   Float
+  usdcAmount  Float
+  createdAt   DateTime  @default(now())
+}
+
+model Position {
   id         Int    @id @default(autoincrement())
-  votingUser String
-  votePower  Int
-  tokenId    String
-  txHash     String
+  pool String
+  position  String
+  sol_usdc  Int
+  amount    Float
+  createdAt        DateTime  @default(now())
+  
+  @@unique([pool, position])
+}
+
+model PoolUser {
+  id        Int    @id @default(autoincrement())
+  user      Int
+  pool      String
+  sol_usdc  Int
+  amount    Float
+  createdAt        DateTime  @default(now())
+
+  @@unique([user, pool])
 }

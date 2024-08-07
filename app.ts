@@ -3,7 +3,7 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import { expressjwt as exjwt } from 'express-jwt';
 import userRoutes from './routes/user.route';
-import voteRoutes from './routes/vote.route';
+import meteoraRoutes from './routes/meteora.route';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -27,10 +27,10 @@ app.get('/test', async (req: Request, res: Response) => {
 
 app.use(express.json());
 app.use('/user', userRoutes);
-app.use('/vote', voteRoutes);
+app.use('/meteora', meteoraRoutes);
 
-app.listen(4000, () => {
-  console.log('Application running on http://localhost:4000');
+app.listen(3900, () => {
+  console.log('Application running on http://localhost:3900');
 });
 
 export default app;
