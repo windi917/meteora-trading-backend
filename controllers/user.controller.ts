@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { createUser, getUserByAddress, userDeposit, userDepositReduce, userWithdraw } from '../services/user.service';
+import { adminPositionWithdraw, createUser, getUserByAddress, userDeposit, userDepositReduce, userWithdraw } from '../services/user.service';
 import nacl from 'tweetnacl';
 import bs58 from 'bs58';
 
@@ -162,6 +162,18 @@ export const reduceDeposit = async (req: MeteoraRequest, res: Response, next: Ne
 
   try {
     const response = await userDepositReduce(req.auth.userId, amount, withdrawType);
+
+    res.status(200).json(response);
+  } catch (error) {
+    res.status(402).json(error);
+  }
+};
+
+export const positionWithdraw = async (req: MeteoraRequest, res: Response, next: NextFunction) => {
+  const { pool, rate, outAmount } = req.body;
+
+  try {
+    const response = await adminPositionWithdraw(pool, rate, outAmount);
 
     res.status(200).json(response);
   } catch (error) {

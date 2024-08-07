@@ -215,7 +215,7 @@ export const jupiterSwap = async (input: string, output: string, amount: number)
     }, 'finalized');
 
     console.log("------taHash: ---", txHash)
-    if ( !txHash || txHash.value.err )
+    if (!txHash || txHash.value.err)
       return { success: false }
 
     console.log(`https://solscan.io/tx/${txid}`);
@@ -430,7 +430,7 @@ export async function removePositionLiquidity(pool: string, positionKey: string,
   if (!dlmmPool)
     return { success: false };
 
-  
+
   const posRes = await getPositionsState(pool);
   if (posRes.success === false)
     return { success: false };
@@ -476,17 +476,6 @@ export async function removePositionLiquidity(pool: string, positionKey: string,
         { skipPreflight: false, preflightCommitment: "confirmed" }
       );
 
-      if ( swapTo === 'sol' ) {
-        if ( swapXAmount !== 0 )
-          await jupiterSwap(dlmmPool.lbPair.tokenXMint.toBase58(), 'So11111111111111111111111111111111111111112', Math.floor(swapXAmount));
-        if ( swapYAmount !== 0 )
-          await jupiterSwap(dlmmPool.lbPair.tokenYMint.toBase58(), 'So11111111111111111111111111111111111111112', Math.floor(swapYAmount));
-      } else {
-        if ( swapXAmount !== 0 )
-          await jupiterSwap(dlmmPool.lbPair.tokenXMint.toBase58(), 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', Math.floor(swapXAmount));
-        if ( swapYAmount !== 0 )
-          await jupiterSwap(dlmmPool.lbPair.tokenYMint.toBase58(), 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', Math.floor(swapYAmount));
-      }
       console.log(
         "🚀 ~ claimFeeTxHash:",
         claimFeeTxHash
@@ -504,7 +493,20 @@ export async function removePositionLiquidity(pool: string, positionKey: string,
       });
     }
 
-    return { success: true };
+    let swapXRes, swapYRes;
+    if (swapTo === 'sol') {
+      if (swapXAmount !== 0)
+        swapXRes = await jupiterSwap(dlmmPool.lbPair.tokenXMint.toBase58(), 'So11111111111111111111111111111111111111112', Math.floor(swapXAmount - 100));
+      if (swapYAmount !== 0)
+        swapYRes = await jupiterSwap(dlmmPool.lbPair.tokenYMint.toBase58(), 'So11111111111111111111111111111111111111112', Math.floor(swapYAmount - 100));
+    } else {
+      if (swapXAmount !== 0)
+        swapXRes = await jupiterSwap(dlmmPool.lbPair.tokenXMint.toBase58(), 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', Math.floor(swapXAmount - 100));
+      if (swapYAmount !== 0)
+        swapYRes = await jupiterSwap(dlmmPool.lbPair.tokenYMint.toBase58(), 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', Math.floor(swapYAmount - 100));
+    }
+
+    return { success: true, swapXRes, swapYRes };
   } catch (error) {
     console.log("🚀 ~ error:", JSON.parse(JSON.stringify(error)));
     return { success: false }

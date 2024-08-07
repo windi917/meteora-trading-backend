@@ -120,7 +120,7 @@ export const userWithdraw = async (user: number, pool: string, reduceAmount: num
 
     const newAmount = poolUser.amount - reduceAmount;
     // Update PoolUser amount
-    await prisma.poolUser.update({
+    const res = await prisma.poolUser.update({
       where: {
         id: poolUser.id,
       },
@@ -128,6 +128,80 @@ export const userWithdraw = async (user: number, pool: string, reduceAmount: num
         amount: newAmount,
       },
     });
+    return res;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+}
+
+export const adminPositionWithdraw = async (pool: string, rate: number, outAmount: number) => {
+  console.log("###########", pool, rate, outAmount);
+  try {
+    // Fetch the PoolUser record
+    const poolUser = await prisma.poolUser.findMany({
+      where: {
+        pool: pool,
+      },
+    });
+
+    if (!poolUser || poolUser.length <= 0) {
+      throw new Error(`PoolUser with pool ${pool} not found.`);
+    }
+
+    const totalAmount = poolUser.reduce((sum, user) => sum + user.amount, 0);
+    console.log("total amount: ", totalAmount);
+
+    for (let i = 0; i < poolUser.length; i++) {
+      const newAmount = poolUser[i].amount * rate / 100;
+      // Update PoolUser amount
+      await prisma.poolUser.update({
+        where: {
+          id: poolUser[i].id,
+        },
+        data: {
+          amount: newAmount,
+        },
+      });
+
+      const depositRate = totalAmount / poolUser[i].amount;
+      console.log("Deposit Rate", depositRate);
+      const deposit = await prisma.userDeposit.findFirst({
+        where: {
+          user: poolUser[i].user,
+        },
+      });
+
+      if (!deposit) {
+        throw new Error(`User Deposit with user ${poolUser[i].user} not found.`);
+      }
+
+      if ( poolUser[i].sol_usdc === 1 ) {
+        const newDepositAmount = deposit.solAmount + (outAmount * depositRate / 100);
+        const res = await prisma.userDeposit.update({
+          data: {
+            solAmount: newDepositAmount
+          },
+          where: {
+            id: deposit.id
+          }
+        });
+
+        return res;
+      } else if ( poolUser[i].sol_usdc === 2 ) {
+        const newDepositAmount = deposit.usdcAmount + (outAmount * depositRate / 100);
+        const res = await prisma.userDeposit.update({
+          data: {
+            usdcAmount: newDepositAmount
+          },
+          where: {
+            id: deposit.id
+          }
+        });
+
+        return res;
+      }
+    }
 
   } catch (e) {
     console.error(e);
@@ -146,7 +220,7 @@ export const userDepositReduce = async (user: number, reduceAmount: number, with
     if (!userDeposit)
       return null;
 
-    if ( withdrawType === 1 ) {
+    if (withdrawType === 1) {
       const newAmount = userDeposit.solAmount - reduceAmount;
       await prisma.userDeposit.update({
         where: {
