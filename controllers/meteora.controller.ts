@@ -273,6 +273,17 @@ export const getBinArraysApi = async (req: Request, res: Response, next: NextFun
   }
 };
 
+export const getPoolPositions = async (req: Request, res: Response, next: NextFunction) => {
+  console.log("GET Pool POSITION");
+
+  try {
+    const positions = await prisma.position.findMany();
+    res.status(200).send(positions);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export const getPositions = async (req: Request, res: Response, next: NextFunction) => {
   console.log("GET POSITION: ", req.query.pool);
 

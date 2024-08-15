@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import express, { Request, Response, NextFunction } from 'express';
-import { getPoolDepositRole, getPositions, getBinArraysApi, getBinIdByPriceApi, getPriceByBinIdApi, getActiveBinApi, getBalancesApi, addPositionApi, addLiquidityApi, removeLiquidityApi, closePositionApi, swapApi, claimApi, jupiterSwapApi, getUserDepositAmountApi, getUserPositionApi } from '../controllers/meteora.controller';
+import { getPoolDepositRole, getPositions, getPoolPositions, getBinArraysApi, getBinIdByPriceApi, getPriceByBinIdApi, getActiveBinApi, getBalancesApi, addPositionApi, addLiquidityApi, removeLiquidityApi, closePositionApi, swapApi, claimApi, jupiterSwapApi, getUserDepositAmountApi, getUserPositionApi } from '../controllers/meteora.controller';
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -38,6 +38,7 @@ router.get('/binId', getBinIdByPriceApi)
 router.get('/activebin', getActiveBinApi);
 router.get('/binArrays', getBinArraysApi);
 router.get('/positions', getPositions);
+router.get('/poolPositions', getPoolPositions);
 router.get('/balances', getBalancesApi);
 router.post('/position/add', userCheck, addPositionApi);
 router.post('/position/close', userCheck, closePositionApi);
