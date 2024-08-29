@@ -3,6 +3,7 @@ import { StrategyType } from "@meteora-ag/dlmm/dist";
 import {
   Connection,
   Keypair,
+  Transaction,
   PublicKey,
   sendAndConfirmTransaction,
   ComputeBudgetProgram,
@@ -10,10 +11,15 @@ import {
   TransactionMessage,
   TransactionInstruction,
   AddressLookupTableAccount,
+  SystemProgram,
 } from "@solana/web3.js";
 
 import {
   getAssociatedTokenAddress,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
+  createSyncNativeInstruction,
+  createAssociatedTokenAccountInstruction
 } from "@solana/spl-token";
 
 import base58 from "bs58";
@@ -23,6 +29,8 @@ import axios from "axios";
 import { updatePoolDeposit, updateUserPoolDeposit } from "./services/meteora.service";
 import dotenv from 'dotenv';
 import { admin, connection, METEORA_API_URL } from "./utiles";
+
+const WRAPPED_SOL_MINT = new PublicKey("So11111111111111111111111111111111111111112"); // WSOL mint address
 
 dotenv.config();
 
@@ -143,14 +151,115 @@ export const getSwapInx = async (quoteResponse: any) => {
   }
 }
 
+// Ensure that all accounts are initialized before performing the swap
+export const ensureAccountInitialized = async (owner: PublicKey, mint: PublicKey) => {
+  const associatedTokenAccount = await getAssociatedTokenAddress(
+    mint,
+    owner
+  );
+
+  const accountInfo = await connection.getAccountInfo(associatedTokenAccount);
+  if (!accountInfo) {
+    // Create and initialize the associated token account if it does not exist
+    const createAccountIx = createAssociatedTokenAccountInstruction(
+      owner,
+      associatedTokenAccount,
+      owner,
+      mint
+    );
+
+    const latestBlockHash = await connection.getLatestBlockhash();
+    const transaction = new Transaction().add(createAccountIx);
+    transaction.feePayer = admin.publicKey;
+    transaction.recentBlockhash = latestBlockHash.blockhash;
+    transaction.sign(admin);
+    console.log("#####-----6---", transaction);
+
+    const txid = await connection.sendRawTransaction(transaction.serialize(), { skipPreflight: true });
+    console.log("#####-----7---", txid);
+    const txHash = await connection.confirmTransaction({
+      blockhash: latestBlockHash.blockhash,
+      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+      signature: txid
+    }, 'finalized');
+
+    console.log("------taHash: ---", txHash)
+    console.log(`Account created and initialized: ${associatedTokenAccount.toBase58()}`);
+  }
+}
+
+// Function to wrap SOL into WSOL
+const wrapSOL = async (amount: number) => {
+  // Get the WSOL ATA for the admin
+  const wsolATA = await getAssociatedTokenAddress(
+    WRAPPED_SOL_MINT, // WSOL mint address
+    admin.publicKey
+  );
+
+  // Ensure the WSOL account is initialized
+  await ensureAccountInitialized(admin.publicKey, WRAPPED_SOL_MINT);
+
+  // Create a transaction to wrap SOL into WSOL
+  const transaction = new Transaction().add(
+    SystemProgram.transfer({
+      fromPubkey: admin.publicKey,
+      toPubkey: wsolATA,
+      lamports: amount, // Amount in lamports (1 SOL = 1,000,000,000 lamports)
+    }),
+    createSyncNativeInstruction(wsolATA) // Sync the WSOL account with the native SOL balance
+  );
+
+  transaction.feePayer = admin.publicKey;
+  const latestBlockhash = await connection.getLatestBlockhash();
+  transaction.recentBlockhash = latestBlockhash.blockhash;
+
+  // Sign and send the transaction
+  transaction.sign(admin);
+  const txid = await connection.sendTransaction(transaction, [admin], {
+    skipPreflight: true,
+  });
+  await connection.confirmTransaction(
+    {
+      blockhash: latestBlockhash.blockhash,
+      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+      signature: txid,
+    },
+    "finalized"
+  );
+
+  console.log(`Wrapped ${amount / 1_000_000_000} SOL into WSOL at ${wsolATA.toBase58()}`);
+};
+
 export const jupiterSwap = async (input: string, output: string, amount: number) => {
   console.log("Swap Step0: ", input, output, amount);
+
+  const solBalance = await connection.getBalance(admin.publicKey);
+  console.log(`Admin SOL Balance: ${solBalance}`);
+
+  // Ensure input and output token accounts are initialized
+  await ensureAccountInitialized(admin.publicKey, new PublicKey(input));
+  await ensureAccountInitialized(admin.publicKey, new PublicKey(output));
+
+  // If input is SOL, wrap the required amount into WSOL
+  if (input === WRAPPED_SOL_MINT.toBase58()) {
+    await wrapSOL(amount); // Wrap the exact amount needed for the swap
+  }
+
+  const inputAccount = await getAssociatedTokenAddress(new PublicKey(input), admin.publicKey);
+  const inputTokenBalance = await connection.getTokenAccountBalance(inputAccount);
+
+  const outputAccount = await getAssociatedTokenAddress(new PublicKey(output), admin.publicKey);
+  const outputTokenBalance = await connection.getTokenAccountBalance(outputAccount);
+
+  console.log(`Input Token Balance: ${inputTokenBalance.value.uiAmount}`);
+  console.log(`Output Token Balance: ${outputTokenBalance.value.uiAmount}`);
+  
   try {
     const quoteResponse = await (
       await fetch(`https://quote-api.jup.ag/v6/quote?inputMint=${input}&outputMint=${output}&amount=${amount}&slippageBps=200`)
     ).json();
 
-    console.log("Swap Step1: ", quoteResponse);
+    console.log("Swap Step1: ", quoteResponse, quoteResponse.routePlan);
     if (!quoteResponse)
       return { success: false }
 
@@ -165,8 +274,6 @@ export const jupiterSwap = async (input: string, output: string, amount: number)
     addressLookupTableAddressesPayload.map((addressLookupTableAddressePayload: any) => {
       if (!addressLookupTableAddresses.includes(addressLookupTableAddressePayload)) addressLookupTableAddresses.push(addressLookupTableAddressePayload)
     })
-
-    console.log("Swap Step2: ");
 
     const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
       units: 2000000
